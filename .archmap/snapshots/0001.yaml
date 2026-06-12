@@ -1,0 +1,172 @@
+snapshot: 1
+base: 0
+date: 2026-06-12
+commits:
+  - 877a9e6
+  - ff002d4
+  - 141c230
+  - 4603c7c
+  - 3bcb43f
+  - 54e7f94
+  - e6a22aa
+kind: init
+title: 首次建图
+story: |
+  archmap 给 AI 当架构记事本:每完成一个功能,AI 对持久地图提交最小补丁和
+  人话摘要,形成与 commit 关联的线性架构快照。代码分七个源码模块加文档配置:
+  命令行串流程,模型与补丁管数据结构,校验器按预算把关文案,变更感知算脏集,
+  快照存储落盘补丁流真源,查看器出实时舆图,初始化负责把工具接入新项目。
+patch:
+  - op: add_module
+    module:
+      id: cli
+      name: 命令行
+      summary: 八个子命令的总入口,串起建图、快照、查看全流程
+      anchors:
+        - src/cli.ts
+  - op: add_module
+    module:
+      id: model-core
+      name: 模型与补丁
+      summary: 地图的数据结构、补丁操作与重放,模型由重放生成
+      anchors:
+        - src/types.ts
+        - src/model.ts
+        - src/patch.ts
+        - src/util.ts
+        - __tests__/patch.test.ts
+  - op: add_module
+    module:
+      id: validate
+      name: 校验器
+      summary: 按配置预算硬校验补丁,字数、形状、id 违规一律打回
+      anchors:
+        - src/validate.ts
+        - src/config.ts
+        - __tests__/validate.test.ts
+  - op: add_module
+    module:
+      id: change-scan
+      name: 变更感知
+      summary: 读 git 变更,算出要复查的脏节点和待收编的无主文件
+      anchors:
+        - src/dirty.ts
+        - src/git.ts
+        - __tests__/dirty.test.ts
+  - op: add_module
+    module:
+      id: snapshot-store
+      name: 快照存储
+      summary: 补丁流落盘为快照,是模型唯一真源,model.yaml 只是缓存
+      anchors:
+        - src/snapshot.ts
+        - __tests__/snapshot.test.ts
+  - op: add_module
+    module:
+      id: viewer
+      name: 查看器
+      summary: 自包含单页舆图,实时服务下快照更新页面自动刷新
+      anchors:
+        - src/view.ts
+        - src/serve.ts
+        - templates/viewer.html
+        - __tests__/view.test.ts
+  - op: add_module
+    module:
+      id: scaffold
+      name: 初始化
+      summary: 把配置模板和 AI 工作流说明复制进目标项目
+      anchors:
+        - src/init.ts
+        - templates/SKILL.md
+  - op: add_module
+    module:
+      id: meta
+      name: 文档与工程配置
+      summary: 设计文档、README 与构建测试等工程配置
+      anchors:
+        - docs/**
+        - README.md
+        - CLAUDE.md
+        - package.json
+        - package-lock.json
+        - tsconfig.json
+        - vitest.config.ts
+  - op: add_relation
+    from: cli
+    relation:
+      to: snapshot-store
+      kind: calls
+      summary: apply/log 等命令读写快照
+  - op: add_relation
+    from: cli
+    relation:
+      to: change-scan
+      kind: calls
+      summary: dirty 命令算脏集
+  - op: add_relation
+    from: cli
+    relation:
+      to: viewer
+      kind: calls
+      summary: view 命令起实时舆图服务
+  - op: add_relation
+    from: snapshot-store
+    relation:
+      to: model-core
+      kind: calls
+      summary: 重放补丁流生成模型
+  - op: add_relation
+    from: snapshot-store
+    relation:
+      to: validate
+      kind: calls
+      summary: 落盘前先过硬校验
+  - op: add_relation
+    from: snapshot-store
+    relation:
+      to: change-scan
+      kind: calls
+      summary: 读 commit 范围与变更文件
+  - op: add_relation
+    from: viewer
+    relation:
+      to: snapshot-store
+      kind: calls
+      summary: 读快照流渲染舆图页面
+  - op: add_feature
+    feature:
+      id: feat-snapshot-flow
+      name: 快照工作流
+      summary: 完成改动后提交补丁加人话摘要,形成线性架构快照
+      modules:
+        - cli
+        - model-core
+        - validate
+        - snapshot-store
+  - op: add_feature
+    feature:
+      id: feat-dirty-scan
+      name: 脏集提醒
+      summary: 按代码变更圈出要复查的模块,无主文件强制收编
+      modules:
+        - cli
+        - change-scan
+  - op: add_feature
+    feature:
+      id: feat-arch-viewer
+      name: 架构舆图
+      summary: 一条命令打开实时舆图,快照更新页面自动刷新
+      modules:
+        - cli
+        - viewer
+  - op: add_feature
+    feature:
+      id: feat-init
+      name: 一键接入
+      summary: init 给任意项目装上地图、配置和 AI 工作流
+      modules:
+        - cli
+        - scaffold
+dirty_checked: []
+no_change: []
