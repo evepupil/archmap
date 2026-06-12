@@ -21,3 +21,5 @@ export function todayISO(): string {
 }
 
 export class ArchmapError extends Error {}
+
+export const VERSION = '0.2.0'

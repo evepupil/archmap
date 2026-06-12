@@ -32,6 +32,17 @@ archmap init        # 创建 .archmap/ 并安装 /archmap-snapshot skill
 | `archmap timeline` | 列出全部快照 |
 | `archmap status` | 快照数、锚点健康、覆盖率 |
 | `archmap check` | gate 检查,只提醒不阻塞 |
+| `archmap mcp` | MCP 服务器模式(stdio),五个工具:context / dirty / patch / diff / status |
+| `archmap install [path]` | 把 MCP 服务器注册进项目 `.mcp.json`(Claude Code,幂等) |
+
+## MCP 工具(AI 视角的入口)
+
+- `archmap_context(task)` —— **事前注入**:开工前传任务描述,拿相关功能/模块/辖区文件/最近变动,先看切片再读代码;
+- `archmap_dirty` / `archmap_patch` —— 事后记录:算脏集 → 提交补丁,校验失败逐条返回 violation 供重试;
+- `archmap_diff(from, to)` —— 区间架构净变化(新增/修改/废弃/昙花);
+- `archmap_status` —— 健康度。
+
+环境变量 `ARCHMAP_MCP_TOOLS=context,patch` 可裁剪暴露的工具面。无 daemon、stdio 单进程,使用规范经 MCP initialize 的 instructions 下发(单一真源)。
 
 ## 数据布局(均随代码进 git)
 

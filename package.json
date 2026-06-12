@@ -1,6 +1,6 @@
 {
   "name": "archmap",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "架构与功能层面的、AI 自动维护的、带时间线的项目地图",
   "type": "module",
   "private": true,

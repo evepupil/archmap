@@ -3,26 +3,26 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { Command } from 'commander'
-import picomatch from 'picomatch'
 import { parse } from 'yaml'
 import { computeDirty } from './dirty.js'
-import { changedFilesInRange, commitSubjectsSince, isGitRepo, listProjectFiles } from './git.js'
+import { changedFilesInRange, commitSubjectsSince, isGitRepo } from './git.js'
 import { installCheckHook, removeCheckHook } from './hooks.js'
 import { initProject } from './init.js'
-import { serializeModel, walkModules } from './model.js'
+import { serializeModel } from './model.js'
 import { replay } from './patch.js'
+import { dirtyReport, statusReport } from './reports.js'
 import {
   applyDraft,
   changedSinceLastSnapshot,
   findRoot,
-  lastSnapshot,
   lastSnapshotSha,
   loadStore,
   writeModel,
   type Store,
 } from './snapshot.js'
+import { McpEngine, runStdioServer } from './mcp/engine.js'
 import type { SnapshotDraft } from './types.js'
-import { ArchmapError, toPosix } from './util.js'
+import { ArchmapError, toPosix, VERSION } from './util.js'
 import { formatViolations } from './validate.js'
 import { startViewerServer } from './serve.js'
 import { buildViewData, renderViewerHtml } from './view.js'
@@ -44,20 +44,13 @@ function readDraft(file: string): SnapshotDraft {
 }
 
 function printDirty(store: Store, files: string[], baseNote: string): void {
-  const result = computeDirty(store.model, files, store.config.unowned_ignore)
-  console.log(`变更范围: ${baseNote},共 ${result.changed.length} 个文件`)
-  console.log(`\n脏模块 (${result.dirtyModules.length}):`)
-  for (const id of result.dirtyModules) console.log(`  - ${id}`)
-  console.log(`\n脏功能 (${result.dirtyFeatures.length}):`)
-  for (const id of result.dirtyFeatures) console.log(`  - ${id}`)
-  console.log(`\n无主文件 (${result.unowned.length})${result.unowned.length ? ',必须收编或提案新模块:' : ':'}`)
-  for (const f of result.unowned) console.log(`  - ${f}`)
+  console.log(dirtyReport(store, files, baseNote))
 }
 
 program
   .name('archmap')
   .description('架构与功能层面的、AI 自动维护的、带时间线的项目地图')
-  .version('0.1.0')
+  .version(VERSION)
 
 program
   .command('init')
@@ -192,40 +185,7 @@ program
   .command('status')
   .description('地图健康度:快照数、锚点失效、覆盖率')
   .action(() => {
-    const store = requireStore()
-    const last = lastSnapshot(store)
-    let moduleCount = 0
-    let featureCount = store.model.features.filter((f) => f.status === 'active').length
-    const brokenAnchors: string[] = []
-    const inGit = isGitRepo(store.root)
-    const files = inGit ? listProjectFiles(store.root).map(toPosix) : null
-
-    const anchorMatchers: ((f: string) => boolean)[] = []
-    walkModules(store.model, (node) => {
-      if (node.status === 'deprecated') return
-      moduleCount++
-      for (const a of node.anchors) {
-        const m = picomatch(toPosix(a.split('#')[0]), { dot: true })
-        anchorMatchers.push(m)
-        if (files && !files.some((f) => m(f))) brokenAnchors.push(`${node.id}: ${a}`)
-      }
-    })
-
-    console.log(`快照: ${store.snapshots.length} 个${last ? `,最新 ${last.snapshot}(${last.date} ${last.title})` : ''}`)
-    console.log(`模块: ${moduleCount} 个(active),功能: ${featureCount} 个(active)`)
-    if (files) {
-      const ignore = store.config.unowned_ignore.map((p) => picomatch(p, { dot: true }))
-      const candidates = files.filter((f) => !ignore.some((m) => m(f)))
-      const covered = candidates.filter((f) => anchorMatchers.some((m) => m(f)))
-      const pct = candidates.length ? Math.round((covered.length / candidates.length) * 100) : 0
-      console.log(`锚点覆盖率: ${pct}% (${covered.length}/${candidates.length} 个文件,粗略口径)`)
-    }
-    if (brokenAnchors.length) {
-      console.log(`失效锚点 (${brokenAnchors.length}),下次快照必须处理:`)
-      for (const a of brokenAnchors) console.log(`  ✗ ${a}`)
-    } else if (files) {
-      console.log('锚点全部有效')
-    }
+    console.log(statusReport(requireStore()))
   })
 
 function openInBrowser(file: string): void {
@@ -289,6 +249,44 @@ program
     } else {
       console.log('无需快照')
     }
+  })
+
+program
+  .command('mcp')
+  .description('以 MCP 服务器模式运行(stdio),供 AI 编程工具接入')
+  .action(() => {
+    runStdioServer(new McpEngine({ cwd: process.cwd(), version: VERSION, allow: process.env.ARCHMAP_MCP_TOOLS }))
+  })
+
+program
+  .command('install')
+  .argument('[path]', '项目根目录', '.')
+  .description('把 archmap MCP 服务器注册到项目的 .mcp.json(Claude Code 项目级配置,幂等)')
+  .action((p: string) => {
+    const root = path.resolve(p)
+    const file = path.join(root, '.mcp.json')
+    let config: { mcpServers?: Record<string, unknown> } = {}
+    if (fs.existsSync(file)) {
+      try {
+        config = JSON.parse(fs.readFileSync(file, 'utf8')) as typeof config
+      } catch {
+        console.error(`${file} 不是合法 JSON,不动它;请手动合并 mcpServers.archmap`)
+        process.exit(1)
+      }
+    }
+    const entry =
+      process.platform === 'win32'
+        ? { command: 'cmd', args: ['/c', 'archmap', 'mcp'] }
+        : { command: 'archmap', args: ['mcp'] }
+    const prev = JSON.stringify(config.mcpServers?.archmap)
+    config.mcpServers = { ...config.mcpServers, archmap: entry }
+    if (prev === JSON.stringify(entry)) {
+      console.log('.mcp.json 已是最新,无变化')
+      return
+    }
+    fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\n', 'utf8')
+    console.log(`已写入 ${toPosix(path.relative(root, file))} —— 重启 Claude Code 会话后生效`)
+    console.log('工具:archmap_context / archmap_dirty / archmap_patch / archmap_diff / archmap_status')
   })
 
 program.parseAsync().catch((e: unknown) => {
