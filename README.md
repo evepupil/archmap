@@ -26,6 +26,7 @@ archmap init        # 创建 .archmap/ 并安装 /archmap-snapshot skill
 | `archmap dirty [--range a..b] [--json]` | 算脏模块/脏功能/无主文件(默认自上个快照到工作区) |
 | `archmap validate <draft.yaml>` | 只校验草稿 |
 | `archmap apply <draft.yaml> [--keep]` | 校验并落盘快照,重放更新 model.yaml |
+| `archmap view [--port n] [--out file]` | 打开架构舆图;默认实时服务(快照更新页面自动刷新),`--out` 导出静态 HTML |
 | `archmap replay [--check]` | 从补丁流重建 model.yaml |
 | `archmap timeline` | 列出全部快照 |
 | `archmap status` | 快照数、锚点健康、覆盖率 |

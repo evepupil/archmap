@@ -32,6 +32,8 @@ export interface ViewData {
   models: Model[]
   /** 节点 id → 引入它的快照号 */
   since: Record<string, number>
+  /** 实时服务模式:页面订阅 /events 自动刷新 */
+  live?: boolean
 }
 
 /** 从补丁操作归类本快照的变化:新增 > 废弃 > 修改,互斥 */

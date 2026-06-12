@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { Command } from 'commander'
 import picomatch from 'picomatch'
@@ -24,6 +23,7 @@ import {
 import type { SnapshotDraft } from './types.js'
 import { ArchmapError, toPosix } from './util.js'
 import { formatViolations } from './validate.js'
+import { startViewerServer } from './serve.js'
 import { buildViewData, renderViewerHtml } from './view.js'
 
 const program = new Command()
@@ -218,18 +218,25 @@ function openInBrowser(file: string): void {
 
 program
   .command('view')
-  .option('--out <file>', '输出 HTML 路径(默认写到系统临时目录)')
-  .option('--no-open', '只生成,不打开浏览器')
-  .description('生成并打开架构舆图(自包含单文件 HTML)')
-  .action((opts: { out?: string; open: boolean }) => {
+  .option('--out <file>', '只导出静态 HTML 后退出,不起实时服务')
+  .option('--port <n>', '实时服务端口(默认随机)')
+  .option('--no-open', '不自动打开浏览器')
+  .description('打开架构舆图;默认起本地实时服务,快照更新页面自动刷新')
+  .action(async (opts: { out?: string; port?: string; open: boolean }) => {
     const store = requireStore()
-    const html = renderViewerHtml(buildViewData(store.root, store.snapshots))
-    const out = opts.out
-      ? path.resolve(opts.out)
-      : path.join(os.tmpdir(), `archmap-view-${path.basename(store.root)}.html`)
-    fs.writeFileSync(out, html, 'utf8')
-    console.log(`已生成: ${out}`)
-    if (opts.open) openInBrowser(out)
+    if (opts.out) {
+      const html = renderViewerHtml(buildViewData(store.root, store.snapshots))
+      const out = path.resolve(opts.out)
+      fs.writeFileSync(out, html, 'utf8')
+      console.log(`已导出: ${out}`)
+      if (opts.open) openInBrowser(out)
+      return
+    }
+    const { port } = await startViewerServer(store.root, opts.port ? Number(opts.port) : 0)
+    const url = `http://127.0.0.1:${port}/`
+    console.log(`实时舆图: ${url}`)
+    console.log('快照变更页面自动刷新;Ctrl+C 退出')
+    if (opts.open) openInBrowser(url)
   })
 
 program

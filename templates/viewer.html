@@ -66,6 +66,12 @@ header::after {
   font-size: 11px; letter-spacing: 6px; color: var(--ink-soft); margin-top: 2px;
   font-family: var(--font-mono); text-transform: uppercase;
 }
+#live-dot {
+  display: none; margin-left: 12px; letter-spacing: 2px; color: var(--green);
+}
+#live-dot::before { content: "●"; margin-right: 4px; animation: pulse 2s infinite; }
+#live-dot.off { color: var(--gray); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 .stats { display: flex; gap: 22px; margin-left: auto; padding-bottom: 4px; }
 .stat { text-align: right; }
 .stat b { font-family: var(--font-display); font-size: 22px; display: block; line-height: 1; }
@@ -267,7 +273,7 @@ footer::before {
 <header>
   <div class="title-block">
     <h1 id="proj-name">—</h1>
-    <div class="sub">ARCHMAP · 架构舆图</div>
+    <div class="sub">ARCHMAP · 架构舆图<span id="live-dot">实时</span></div>
   </div>
   <div class="stats">
     <div class="stat"><b id="st-mod">0</b><span>模块</span></div>
@@ -692,6 +698,24 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') gotoSnap(S.idx - 1);
   if (e.key === 'ArrowRight') gotoSnap(S.idx + 1);
 });
+
+/* ============ 实时模式:订阅服务端推送,数据原地更新 ============ */
+if (DATA.live) {
+  $('live-dot').style.display = 'inline';
+  const es = new EventSource('/events');
+  es.onopen = () => $('live-dot').classList.remove('off');
+  es.onerror = () => $('live-dot').classList.add('off');   // EventSource 自动重连
+  es.onmessage = async () => {
+    try {
+      const fresh = await (await fetch('/data')).json();
+      const atLatest = S.idx >= DATA.snapshots.length - 1;  // 在最新快照上则跟随新进度
+      Object.assign(DATA, fresh);
+      const last = DATA.snapshots.length - 1;
+      S.idx = Math.min(S.idx, last);
+      gotoSnap(atLatest ? last : S.idx, true);
+    } catch (e) { /* 服务端短暂不可达,等下一次推送 */ }
+  };
+}
 
 document.title = DATA.project + ' · 架构舆图';
 render();
