@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { buildContextReport } from '../analysis/context.js'
 import { diffRange } from '../analysis/diff.js'
-import { changedFilesInRange, isGitRepo, listProjectFiles } from '../store/git.js'
+import { changedFilesInRange, isGitRepo, listProjectFiles, renamesInRange, renamesSince } from '../store/git.js'
 import { dirtyReport, statusReport } from '../analysis/reports.js'
 import {
   applyDraft,
@@ -153,10 +153,11 @@ export async function callTool(name: string, args: Record<string, unknown>, cwd:
       if (args.range !== undefined) {
         const range = str(args.range, 'range', 200)
         if (!SAFE_RANGE.test(range)) throw new ArchmapError(`非法 range: ${range}`)
-        return dirtyReport(store, changedFilesInRange(store.root, range), range)
+        return dirtyReport(store, changedFilesInRange(store.root, range), range, renamesInRange(store.root, range))
       }
       const { baseSha, files } = changedSinceLastSnapshot(store)
-      return dirtyReport(store, files, baseSha ? `${baseSha}..工作区` : '全部文件(尚无快照基线)')
+      const renames = store.snapshots.length && isGitRepo(store.root) ? renamesSince(store.root, baseSha) : []
+      return dirtyReport(store, files, baseSha ? `${baseSha}..工作区` : '全部文件(尚无快照基线)', renames)
     }
     case 'archmap_patch': {
       const store = resolveStore(cwd, args.projectPath)

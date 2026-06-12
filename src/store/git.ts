@@ -50,6 +50,32 @@ export function changedFilesInRange(root: string, range: string): string[] {
   return lines(git(root, ['diff', '--name-only', range]))
 }
 
+export interface Rename {
+  from: string
+  to: string
+}
+
+function parseRenames(out: string | null): Rename[] {
+  if (!out) return []
+  const renames: Rename[] = []
+  for (const line of out.split('\n')) {
+    const parts = line.split('\t')
+    if (parts.length === 3 && parts[0].startsWith('R')) {
+      renames.push({ from: toPosix(parts[1].trim()), to: toPosix(parts[2].trim()) })
+    }
+  }
+  return renames
+}
+
+/** base 到工作区的文件改名对(git -M 探测),目录重构时给锚点迁移当线索 */
+export function renamesSince(root: string, baseSha: string | null): Rename[] {
+  return parseRenames(git(root, ['diff', '--name-status', '-M', baseSha ?? 'HEAD']))
+}
+
+export function renamesInRange(root: string, range: string): Rename[] {
+  return parseRenames(git(root, ['diff', '--name-status', '-M', range]))
+}
+
 /** base(不含)到 HEAD 的提交短 SHA,旧的在前 */
 export function commitsSince(root: string, baseSha: string | null): string[] {
   const range = baseSha ? `${baseSha}..HEAD` : 'HEAD'

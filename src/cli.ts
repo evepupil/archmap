@@ -5,7 +5,14 @@ import path from 'node:path'
 import { Command } from 'commander'
 import { parse } from 'yaml'
 import { computeDirty } from './analysis/dirty.js'
-import { changedFilesInRange, commitSubjectsSince, isGitRepo } from './store/git.js'
+import {
+  changedFilesInRange,
+  commitSubjectsSince,
+  isGitRepo,
+  renamesInRange,
+  renamesSince,
+  type Rename,
+} from './store/git.js'
 import { installCheckHook, removeCheckHook } from './setup/hooks.js'
 import { initProject } from './setup/init.js'
 import { serializeModel } from './core/model.js'
@@ -41,10 +48,6 @@ function requireStore(): Store {
 function readDraft(file: string): SnapshotDraft {
   if (!fs.existsSync(file)) throw new ArchmapError(`草稿文件不存在: ${file}`)
   return parse(fs.readFileSync(file, 'utf8')) as SnapshotDraft
-}
-
-function printDirty(store: Store, files: string[], baseNote: string): void {
-  console.log(dirtyReport(store, files, baseNote))
 }
 
 program
@@ -94,18 +97,27 @@ program
     const store = requireStore()
     let files: string[]
     let note: string
+    let renames: Rename[]
     if (opts.range) {
       files = changedFilesInRange(store.root, opts.range)
+      renames = renamesInRange(store.root, opts.range)
       note = opts.range
     } else {
       const r = changedSinceLastSnapshot(store)
       files = r.files
+      renames = store.snapshots.length && isGitRepo(store.root) ? renamesSince(store.root, r.baseSha) : []
       note = r.baseSha ? `${r.baseSha}..工作区` : '全部文件(尚无快照基线)'
     }
     if (opts.json) {
-      console.log(JSON.stringify(computeDirty(store.model, files, store.config.unowned_ignore), null, 2))
+      console.log(
+        JSON.stringify(
+          { ...computeDirty(store.model, files, store.config.unowned_ignore), renames },
+          null,
+          2,
+        ),
+      )
     } else {
-      printDirty(store, files, note)
+      console.log(dirtyReport(store, files, note, renames))
     }
   })
 

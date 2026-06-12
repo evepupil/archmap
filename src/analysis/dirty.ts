@@ -24,6 +24,14 @@ function compileModules(model: Model): CompiledModule[] {
   return out
 }
 
+/** 某个文件归哪些模块管辖(按锚点匹配,不含祖先) */
+export function fileOwners(model: Model, file: string): string[] {
+  const f = toPosix(file)
+  return compileModules(model)
+    .filter((c) => c.match(f))
+    .map((c) => c.id)
+}
+
 /**
  * 脏标记传播:变更文件 → 脏模块(含祖先)→ 脏功能;
  * 没有命中任何模块锚点的文件进无主清单。

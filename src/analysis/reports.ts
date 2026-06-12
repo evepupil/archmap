@@ -1,6 +1,6 @@
 import picomatch from 'picomatch'
-import { computeDirty } from './dirty.js'
-import { isGitRepo, listProjectFiles } from '../store/git.js'
+import { computeDirty, fileOwners } from './dirty.js'
+import { isGitRepo, listProjectFiles, type Rename } from '../store/git.js'
 import { walkModules } from '../core/model.js'
 import { lastSnapshot, type Store } from '../store/snapshot.js'
 import type { Model } from '../core/types.js'
@@ -15,7 +15,7 @@ function nameOf(model: Model, id: string): string {
   return f ? `${f.name}` : name
 }
 
-export function dirtyReport(store: Store, files: string[], note: string): string {
+export function dirtyReport(store: Store, files: string[], note: string, renames: Rename[] = []): string {
   const r = computeDirty(store.model, files, store.config.unowned_ignore)
   const lines = [`变更范围: ${note},共 ${r.changed.length} 个文件`]
   lines.push(`\n脏模块 (${r.dirtyModules.length}):`)
@@ -25,6 +25,14 @@ export function dirtyReport(store: Store, files: string[], note: string): string
   lines.push(`\n无主文件 (${r.unowned.length})${r.unowned.length ? ',必须收编进现有模块或提案新模块:' : ':'}`)
   for (const f of r.unowned.slice(0, 60)) lines.push(`  - ${f}`)
   if (r.unowned.length > 60) lines.push(`  ...等共 ${r.unowned.length} 个`)
+  if (renames.length) {
+    lines.push(`\n迁移线索 (${renames.length}),旧路径原属模块如下,照此更新锚点(update_anchors):`)
+    for (const rn of renames.slice(0, 40)) {
+      const owners = fileOwners(store.model, rn.from)
+      lines.push(`  - ${rn.from}${owners.length ? `(原属 ${owners.join('、')})` : ''} → ${rn.to}`)
+    }
+    if (renames.length > 40) lines.push(`  ...等共 ${renames.length} 对`)
+  }
   return lines.join('\n')
 }
 
