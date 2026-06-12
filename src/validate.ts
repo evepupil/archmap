@@ -5,9 +5,85 @@ import type { ArchmapConfig, Model, PatchOp, SnapshotDraft, Violation } from './
 import { countChars, countStoryChars, isKebabCase, toPosix } from './util.js'
 
 const KINDS = new Set(['init', 'feature', 'fix-confirm', 'refactor', 'audit'])
+const RELATION_KINDS = new Set(['calls', 'depends', 'stores', 'notifies'])
+
+const DRAFT_KEYS = new Set(['kind', 'title', 'story', 'patch', 'commits', 'dirty_checked', 'no_change'])
+const RELATION_KEYS = new Set(['to', 'kind', 'summary'])
+const OP_KEYS: Record<string, Set<string>> = {
+  add_module: new Set(['op', 'parent', 'module']),
+  update_module: new Set(['op', 'id', 'set']),
+  move_module: new Set(['op', 'id', 'parent']),
+  update_anchors: new Set(['op', 'target', 'anchors']),
+  add_relation: new Set(['op', 'from', 'relation']),
+  remove_relation: new Set(['op', 'from', 'to', 'kind']),
+  deprecate_module: new Set(['op', 'id']),
+  add_feature: new Set(['op', 'feature']),
+  update_feature: new Set(['op', 'id', 'set']),
+  deprecate_feature: new Set(['op', 'id']),
+}
+const NESTED_KEYS: Record<string, Record<string, Set<string>>> = {
+  add_module: { module: new Set(['id', 'name', 'summary', 'anchors', 'relations']) },
+  update_module: { set: new Set(['name', 'summary']) },
+  add_relation: { relation: RELATION_KEYS },
+  add_feature: { feature: new Set(['id', 'name', 'summary', 'modules', 'anchors']) },
+  update_feature: { set: new Set(['name', 'summary', 'modules']) },
+}
 
 function bannedHits(text: string, banned: string[]): string[] {
   return banned.filter((w) => w && text.includes(w))
+}
+
+function checkKeys(obj: unknown, allowed: Set<string>, at: string, v: Violation[]): void {
+  if (obj == null || typeof obj !== 'object' || Array.isArray(obj)) {
+    v.push({ path: at, message: '必须是对象' })
+    return
+  }
+  for (const k of Object.keys(obj)) {
+    if (!allowed.has(k))
+      v.push({ path: at, message: `未知字段: ${k}(常见原因:YAML 换行写岔,内容串成了新键)` })
+  }
+}
+
+function checkRelations(relations: unknown, at: string, v: Violation[]): void {
+  if (relations === undefined) return
+  if (!Array.isArray(relations)) {
+    v.push({ path: at, message: '必须是数组' })
+    return
+  }
+  relations.forEach((r, i) => {
+    checkKeys(r, RELATION_KEYS, `${at}[${i}]`, v)
+    const kind = (r as Record<string, unknown>)?.kind
+    if (typeof kind === 'string' && !RELATION_KINDS.has(kind))
+      v.push({ path: `${at}[${i}].kind`, message: `非法关系类型: ${kind}(可选 calls/depends/stores/notifies)` })
+  })
+}
+
+/** 草稿的形状严格校验:未知字段一律打回,拦住 YAML 写岔的串行键 */
+function validateShape(draft: SnapshotDraft, v: Violation[]): void {
+  checkKeys(draft, DRAFT_KEYS, 'draft', v)
+  if (!Array.isArray(draft.patch)) return
+  draft.patch.forEach((op, i) => {
+    const at = `patch[${i}]`
+    const opName = (op as { op?: unknown }).op
+    if (typeof opName !== 'string' || !(opName in OP_KEYS)) {
+      v.push({ path: at, message: `未知操作: ${String(opName)}` })
+      return
+    }
+    checkKeys(op, OP_KEYS[opName], at, v)
+    for (const [field, allowed] of Object.entries(NESTED_KEYS[opName] ?? {})) {
+      const nested = (op as Record<string, unknown>)[field]
+      if (nested !== undefined) {
+        checkKeys(nested, allowed, `${at}.${field}`, v)
+        if (field === 'module')
+          checkRelations((nested as Record<string, unknown>).relations, `${at}.${field}.relations`, v)
+        if (field === 'relation') {
+          const kind = (nested as Record<string, unknown>).kind
+          if (typeof kind === 'string' && !RELATION_KINDS.has(kind))
+            v.push({ path: `${at}.${field}.kind`, message: `非法关系类型: ${kind}(可选 calls/depends/stores/notifies)` })
+        }
+      }
+    }
+  })
 }
 
 /**
@@ -24,6 +100,10 @@ export function validateDraft(
   const v: Violation[] = []
   const b = config.budgets
   const banned = config.banned_words
+
+  // —— 形状严格校验:未知字段直接打回 ——
+  validateShape(draft, v)
+  if (v.length) return v
 
   // —— 草稿自身的形状与预算 ——
   if (!KINDS.has(draft.kind)) v.push({ path: 'kind', message: `非法 kind: ${String(draft.kind)}` })

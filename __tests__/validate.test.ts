@@ -150,6 +150,57 @@ describe('validateDraft', () => {
     expect(v2.some((x) => x.path === 'no_change')).toBe(true)
   })
 
+  it('未知字段打回:YAML 写岔产生的串行键(实战案例)', () => {
+    // 实战中 AI 把 summary 写岔行,产生了 "读策略热加载: null" 这个串行键
+    const v = validateDraft(
+      draft({
+        patch: [
+          {
+            op: 'add_module',
+            module: {
+              id: 'proxy',
+              name: '代理',
+              summary: 'x',
+              relations: [{ to: 'auth', kind: 'stores', summary: '写审计事件', 读策略热加载: null } as never],
+            },
+          },
+        ],
+      }),
+      baseModel(),
+      cfg,
+      null,
+      2,
+    )
+    expect(v.some((x) => x.message.includes('未知字段: 读策略热加载'))).toBe(true)
+  })
+
+  it('未知字段打回:草稿顶层与 op 层', () => {
+    const m = baseModel()
+    const v1 = validateDraft({ ...draft({}), snapshot: 5 } as never, m, cfg, null, 2)
+    expect(v1.some((x) => x.path === 'draft' && x.message.includes('snapshot'))).toBe(true)
+    const v2 = validateDraft(
+      draft({ patch: [{ op: 'deprecate_module', id: 'auth', reason: '不要了' } as never] }),
+      m,
+      cfg,
+      null,
+      2,
+    )
+    expect(v2.some((x) => x.path === 'patch[0]' && x.message.includes('reason'))).toBe(true)
+  })
+
+  it('关系 kind 枚举校验', () => {
+    const v = validateDraft(
+      draft({
+        patch: [{ op: 'add_relation', from: 'auth', relation: { to: 'auth', kind: 'uses' as never, summary: 'x' } }],
+      }),
+      baseModel(),
+      cfg,
+      null,
+      2,
+    )
+    expect(v.some((x) => x.message.includes('非法关系类型'))).toBe(true)
+  })
+
   it('补丁不可应用时给出 PatchError 信息', () => {
     const v = validateDraft(
       draft({ patch: [{ op: 'update_module', id: 'ghost', set: { name: 'x' } }] }),
