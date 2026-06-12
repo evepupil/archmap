@@ -24,6 +24,7 @@ unowned_ignore:            # 这些文件不参与"无主文件"判定
   - ".codex/**"
   - ".git/**"
   - ".gitignore"
+  - ".mcp.json"
 gate:
   require_on: [feat]       # 哪类 commit 强制要求快照(目前仅提醒,不阻塞)
 `

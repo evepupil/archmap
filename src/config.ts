@@ -18,7 +18,7 @@ export const DEFAULT_CONFIG: ArchmapConfig = {
     max_depth: 3,
   },
   banned_words: [],
-  unowned_ignore: ['.archmap/**', '.claude/**', '.git/**', '.gitignore'],
+  unowned_ignore: ['.archmap/**', '.claude/**', '.codex/**', '.git/**', '.gitignore', '.mcp.json'],
   gate: { require_on: ['feat'] },
 }
 
