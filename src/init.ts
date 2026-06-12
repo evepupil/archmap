@@ -1,6 +1,8 @@
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { installCheckHook, type HookInstallResult } from './hooks.js'
 
 const CONFIG_TEMPLATE = `# archmap 配置。预算是硬约束,校验器按这里执行。
 language: zh
@@ -19,6 +21,7 @@ banned_words: []           # 黑话黑名单,命中即打回。示例: [赋能, 
 unowned_ignore:            # 这些文件不参与"无主文件"判定
   - ".archmap/**"
   - ".claude/**"
+  - ".codex/**"
   - ".git/**"
   - ".gitignore"
 gate:
@@ -30,12 +33,19 @@ modules: []
 features: []
 `
 
+const SKILLS = [
+  { template: 'SKILL.md', name: 'archmap-snapshot' },
+  { template: 'AUDIT_SKILL.md', name: 'archmap-audit' },
+]
+
 export interface InitResult {
   created: string[]
   skipped: string[]
+  hook: HookInstallResult
+  codex: boolean
 }
 
-export function initProject(root: string): InitResult {
+export function initProject(root: string, opts: { home?: string } = {}): InitResult {
   const created: string[] = []
   const skipped: string[] = []
   const dir = path.join(root, '.archmap')
@@ -55,15 +65,18 @@ export function initProject(root: string): InitResult {
   fs.mkdirSync(path.join(dir, 'snapshots'), { recursive: true })
   writeIfAbsent(path.join(dir, 'snapshots', '.gitkeep'), '')
 
-  // 把快照工作流的 skill 装进目标项目,AI 工具(Claude Code 等)即可识别
+  // 把工作流 skill 装进目标项目;装了 Codex 的同时投放到它的项目级目录
+  const home = opts.home ?? os.homedir()
+  const codex = fs.existsSync(path.join(home, '.codex'))
   const templateDir = fileURLToPath(new URL('../templates', import.meta.url))
-  const skillSrc = path.join(templateDir, 'SKILL.md')
-  if (fs.existsSync(skillSrc)) {
-    writeIfAbsent(
-      path.join(root, '.claude', 'skills', 'archmap-snapshot', 'SKILL.md'),
-      fs.readFileSync(skillSrc, 'utf8'),
-    )
+  for (const s of SKILLS) {
+    const src = path.join(templateDir, s.template)
+    if (!fs.existsSync(src)) continue
+    const content = fs.readFileSync(src, 'utf8')
+    writeIfAbsent(path.join(root, '.claude', 'skills', s.name, 'SKILL.md'), content)
+    if (codex) writeIfAbsent(path.join(root, '.codex', 'skills', s.name, 'SKILL.md'), content)
   }
 
-  return { created, skipped }
+  const hook = installCheckHook(root)
+  return { created, skipped, hook, codex }
 }

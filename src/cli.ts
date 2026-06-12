@@ -7,6 +7,7 @@ import picomatch from 'picomatch'
 import { parse } from 'yaml'
 import { computeDirty } from './dirty.js'
 import { changedFilesInRange, commitSubjectsSince, isGitRepo, listProjectFiles } from './git.js'
+import { installCheckHook, removeCheckHook } from './hooks.js'
 import { initProject } from './init.js'
 import { serializeModel, walkModules } from './model.js'
 import { replay } from './patch.js'
@@ -67,7 +68,28 @@ program
     const r = initProject(root)
     for (const f of r.created) console.log(`  + ${f}`)
     for (const f of r.skipped) console.log(`  = ${f} (已存在,跳过)`)
+    console.log(
+      r.hook === 'installed'
+        ? '  + post-commit 提醒钩子已安装(只提醒,不阻塞)'
+        : '  ! 非 git 仓库,提醒钩子未安装',
+    )
+    if (r.codex) console.log('  + 检测到 Codex,skill 已同步投放到 .codex/skills/')
     console.log('\n下一步:让 AI 执行 /archmap-snapshot 完成首次建图')
+  })
+
+program
+  .command('hook')
+  .option('--remove', '移除 post-commit 提醒钩子')
+  .description('安装/移除 post-commit 提醒钩子(archmap check)')
+  .action((opts: { remove?: boolean }) => {
+    const store = requireStore()
+    if (opts.remove) {
+      const r = removeCheckHook(store.root)
+      console.log(r === 'removed' ? '已移除' : '本来就没有')
+    } else {
+      const r = installCheckHook(store.root)
+      console.log(r === 'installed' ? '已安装到 .git/hooks/post-commit' : '非 git 仓库,无法安装')
+    }
   })
 
 program

@@ -93,7 +93,23 @@ describe('findRoot / initProject', () => {
     expect(fs.readFileSync(path.join(tmp, '.archmap', 'config.yaml'), 'utf8')).toContain('en')
   })
 
-  it('init 安装 skill 到 .claude/skills/', () => {
+  it('init 安装两个 skill 到 .claude/skills/', () => {
     expect(fs.existsSync(path.join(tmp, '.claude', 'skills', 'archmap-snapshot', 'SKILL.md'))).toBe(true)
+    expect(fs.existsSync(path.join(tmp, '.claude', 'skills', 'archmap-audit', 'SKILL.md'))).toBe(true)
+  })
+
+  it('检测到 Codex 时同步投放到 .codex/skills/,否则不投放', () => {
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'archmap-home-'))
+    fs.mkdirSync(path.join(fakeHome, '.codex'))
+    const p1 = fs.mkdtempSync(path.join(os.tmpdir(), 'archmap-cx-'))
+    const r1 = initProject(p1, { home: fakeHome })
+    expect(r1.codex).toBe(true)
+    expect(fs.existsSync(path.join(p1, '.codex', 'skills', 'archmap-snapshot', 'SKILL.md'))).toBe(true)
+
+    const p2 = fs.mkdtempSync(path.join(os.tmpdir(), 'archmap-nocx-'))
+    const r2 = initProject(p2, { home: fs.mkdtempSync(path.join(os.tmpdir(), 'archmap-home2-')) })
+    expect(r2.codex).toBe(false)
+    expect(fs.existsSync(path.join(p2, '.codex'))).toBe(false)
+    for (const d of [fakeHome, p1, p2]) fs.rmSync(d, { recursive: true, force: true })
   })
 })

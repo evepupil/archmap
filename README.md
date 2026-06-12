@@ -22,7 +22,8 @@ archmap init        # 创建 .archmap/ 并安装 /archmap-snapshot skill
 
 | 命令 | 作用 |
 |---|---|
-| `archmap init [path]` | 初始化 `.archmap/`,安装 skill |
+| `archmap init [path]` | 初始化 `.archmap/`,安装 skill(快照 + 审计)、post-commit 提醒钩子;检测到 Codex 同步投放 |
+| `archmap hook [--remove]` | 单独安装/移除 post-commit 提醒钩子 |
 | `archmap dirty [--range a..b] [--json]` | 算脏模块/脏功能/无主文件(默认自上个快照到工作区) |
 | `archmap validate <draft.yaml>` | 只校验草稿 |
 | `archmap apply <draft.yaml> [--keep]` | 校验并落盘快照,重放更新 model.yaml |
