@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { Snapshot } from '../src/types.js'
-import { buildViewData, classifyChanges } from '../src/view.js'
+import type { Snapshot } from '../src/core/types.js'
+import { classifyChanges } from '../src/analysis/diff.js'
+import { buildViewData } from '../src/viewer/view.js'
 
 function snap(n: number, patch: Snapshot['patch'], kind: Snapshot['kind'] = 'feature'): Snapshot {
   return { snapshot: n, base: n - 1, date: `2026-06-${10 + n}`, commits: [], kind, title: `s${n}`, story: 'x', patch, dirty_checked: [], no_change: [] }

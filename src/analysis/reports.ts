@@ -1,10 +1,10 @@
 import picomatch from 'picomatch'
 import { computeDirty } from './dirty.js'
-import { isGitRepo, listProjectFiles } from './git.js'
-import { walkModules } from './model.js'
-import { lastSnapshot, type Store } from './snapshot.js'
-import type { Model } from './types.js'
-import { toPosix } from './util.js'
+import { isGitRepo, listProjectFiles } from '../store/git.js'
+import { walkModules } from '../core/model.js'
+import { lastSnapshot, type Store } from '../store/snapshot.js'
+import type { Model } from '../core/types.js'
+import { toPosix } from '../core/util.js'
 
 function nameOf(model: Model, id: string): string {
   let name = id

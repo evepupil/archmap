@@ -1,13 +1,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { parse, stringify } from 'yaml'
-import { loadConfig } from './config.js'
+import { loadConfig } from '../core/config.js'
 import { changedFilesSince, commitsSince, isGitRepo, listProjectFiles, revParse } from './git.js'
-import { serializeModel } from './model.js'
-import { applyPatch, replay } from './patch.js'
-import type { ArchmapConfig, Model, Snapshot, SnapshotDraft, Violation } from './types.js'
-import { validateDraft } from './validate.js'
-import { ArchmapError, todayISO } from './util.js'
+import { serializeModel } from '../core/model.js'
+import { applyPatch, replay } from '../core/patch.js'
+import type { ArchmapConfig, Model, Snapshot, SnapshotDraft, Violation } from '../core/types.js'
+import { validateDraft } from '../core/validate.js'
+import { ArchmapError, todayISO } from '../core/util.js'
 
 export interface Store {
   root: string

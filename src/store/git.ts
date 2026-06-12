@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { toPosix } from './util.js'
+import { toPosix } from '../core/util.js'
 
 function git(root: string, args: string[]): string | null {
   try {

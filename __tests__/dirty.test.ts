@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { computeDirty } from '../src/dirty.js'
-import { emptyModel } from '../src/model.js'
-import { applyPatch } from '../src/patch.js'
-import type { Model } from '../src/types.js'
+import { computeDirty } from '../src/analysis/dirty.js'
+import { emptyModel } from '../src/core/model.js'
+import { applyPatch } from '../src/core/patch.js'
+import type { Model } from '../src/core/types.js'
 
 function model(): Model {
   return applyPatch(

@@ -4,13 +4,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Command } from 'commander'
 import { parse } from 'yaml'
-import { computeDirty } from './dirty.js'
-import { changedFilesInRange, commitSubjectsSince, isGitRepo } from './git.js'
-import { installCheckHook, removeCheckHook } from './hooks.js'
-import { initProject } from './init.js'
-import { serializeModel } from './model.js'
-import { replay } from './patch.js'
-import { dirtyReport, statusReport } from './reports.js'
+import { computeDirty } from './analysis/dirty.js'
+import { changedFilesInRange, commitSubjectsSince, isGitRepo } from './store/git.js'
+import { installCheckHook, removeCheckHook } from './setup/hooks.js'
+import { initProject } from './setup/init.js'
+import { serializeModel } from './core/model.js'
+import { replay } from './core/patch.js'
+import { dirtyReport, statusReport } from './analysis/reports.js'
 import {
   applyDraft,
   changedSinceLastSnapshot,
@@ -19,13 +19,13 @@ import {
   loadStore,
   writeModel,
   type Store,
-} from './snapshot.js'
+} from './store/snapshot.js'
 import { McpEngine, runStdioServer } from './mcp/engine.js'
-import type { SnapshotDraft } from './types.js'
-import { ArchmapError, toPosix, VERSION } from './util.js'
-import { formatViolations } from './validate.js'
-import { startViewerServer } from './serve.js'
-import { buildViewData, renderViewerHtml } from './view.js'
+import type { SnapshotDraft } from './core/types.js'
+import { ArchmapError, toPosix, VERSION } from './core/util.js'
+import { formatViolations } from './core/validate.js'
+import { startViewerServer } from './viewer/serve.js'
+import { buildViewData, renderViewerHtml } from './viewer/view.js'
 
 const program = new Command()
 

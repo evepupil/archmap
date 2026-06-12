@@ -7,9 +7,16 @@
 ## 技术栈与结构
 
 - TypeScript + ESM(NodeNext,源码 import 需带 .js 后缀),Node ≥20
-- 依赖刻意精简:commander / picomatch / yaml,无 SQLite、无 daemon(与 codegraph 的差异是有意的,见 design.md §8)
-- `src/` 一个文件一个职责:types / config / model(序列化)/ patch(补丁与重放)/ validate(校验)/ dirty(脏标记)/ git / snapshot(存储与落盘)/ init / cli
-- `templates/SKILL.md` 是 AI 用的工作流说明,`archmap init` 时复制进目标项目
+- 依赖刻意精简:commander / picomatch / yaml,无 SQLite、无 daemon、MCP 不用 SDK(与 codegraph 的差异是有意的,见 design.md §8)
+- `src/` 按职责分层,依赖方向只允许向下:
+  - `core/` 领域核心:types / util / config / model(序列化)/ patch(补丁与重放)/ validate(校验)——不依赖其他层
+  - `store/` 持久化:snapshot(存储与落盘)/ git
+  - `analysis/` 派生计算:dirty(脏标记)/ diff(变化归类与区间聚合)/ context(任务→地图切片)/ reports(共享报告文本)
+  - `viewer/` 查看器:view(数据预计算与模板注入)/ serve(实时 SSE 服务)
+  - `setup/` 安装面:init / hooks(post-commit 提醒)
+  - `mcp/` MCP 服务器:engine(JSON-RPC)/ tools(五工具)/ instructions(单一真源)
+  - `cli.ts` 入口,组装以上各层
+- `templates/` 下是 AI 工作流 skill 与查看器模板,`archmap init` / `archmap view` 时按相对路径读取(`../../templates`,移动文件注意层级)
 
 ## 门禁
 

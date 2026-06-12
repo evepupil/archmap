@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { emptyModel, findModule } from '../src/model.js'
-import { applyPatch, PatchError, replay } from '../src/patch.js'
-import type { Model, PatchOp, Snapshot } from '../src/types.js'
+import { emptyModel, findModule } from '../src/core/model.js'
+import { applyPatch, PatchError, replay } from '../src/core/patch.js'
+import type { Model, PatchOp, Snapshot } from '../src/core/types.js'
 
 function base(): Model {
   return applyPatch(

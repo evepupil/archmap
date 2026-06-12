@@ -1,6 +1,6 @@
 import picomatch from 'picomatch'
-import type { DirtyResult, Model, ModuleNode } from './types.js'
-import { toPosix } from './util.js'
+import type { DirtyResult, Model, ModuleNode } from '../core/types.js'
+import { toPosix } from '../core/util.js'
 
 interface CompiledModule {
   id: string

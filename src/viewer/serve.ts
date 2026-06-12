@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
-import { loadStore } from './snapshot.js'
+import { loadStore } from '../store/snapshot.js'
 import { buildViewData, renderViewerHtml } from './view.js'
 
 export interface ViewerServer {

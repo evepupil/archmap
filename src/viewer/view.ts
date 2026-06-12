@@ -1,16 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { emptyModel } from './model.js'
-import { applyPatch } from './patch.js'
-import type { Model, PatchOp, Snapshot } from './types.js'
-import { toPosix } from './util.js'
-
-export interface ViewChanges {
-  added: string[]
-  modified: string[]
-  deprecated: string[]
-}
+import { classifyChanges, type SnapshotChanges } from '../analysis/diff.js'
+import { emptyModel } from '../core/model.js'
+import { applyPatch } from '../core/patch.js'
+import type { Model, Snapshot } from '../core/types.js'
+import { toPosix } from '../core/util.js'
 
 export interface ViewSnapshot {
   snapshot: number
@@ -20,7 +15,7 @@ export interface ViewSnapshot {
   story: string
   commits: string[]
   no_change: string[]
-  changes: ViewChanges
+  changes: SnapshotChanges
 }
 
 export interface ViewData {
@@ -34,45 +29,6 @@ export interface ViewData {
   since: Record<string, number>
   /** 实时服务模式:页面订阅 /events 自动刷新 */
   live?: boolean
-}
-
-/** 从补丁操作归类本快照的变化:新增 > 废弃 > 修改,互斥 */
-export function classifyChanges(patch: PatchOp[]): ViewChanges {
-  const added = new Set<string>()
-  const deprecated = new Set<string>()
-  const modified = new Set<string>()
-  for (const op of patch) {
-    switch (op.op) {
-      case 'add_module':
-        added.add(op.module.id)
-        break
-      case 'add_feature':
-        added.add(op.feature.id)
-        break
-      case 'deprecate_module':
-      case 'deprecate_feature':
-        deprecated.add(op.id)
-        break
-      case 'update_module':
-      case 'update_feature':
-      case 'move_module':
-        modified.add(op.id)
-        break
-      case 'update_anchors':
-        modified.add(op.target)
-        break
-      case 'add_relation':
-      case 'remove_relation':
-        modified.add(op.from)
-        break
-    }
-  }
-  for (const id of added) {
-    modified.delete(id)
-    deprecated.delete(id)
-  }
-  for (const id of deprecated) modified.delete(id)
-  return { added: [...added].sort(), modified: [...modified].sort(), deprecated: [...deprecated].sort() }
 }
 
 export function buildViewData(root: string, snapshots: Snapshot[]): ViewData {
@@ -111,7 +67,7 @@ export function buildViewData(root: string, snapshots: Snapshot[]): ViewData {
 
 /** 把数据注入模板,产出自包含的单文件 HTML */
 export function renderViewerHtml(data: ViewData): string {
-  const templatePath = fileURLToPath(new URL('../templates/viewer.html', import.meta.url))
+  const templatePath = fileURLToPath(new URL('../../templates/viewer.html', import.meta.url))
   const template = fs.readFileSync(templatePath, 'utf8')
   // JSON 里的 < 转义,防止 </script> 截断
   const json = JSON.stringify(data).replace(/</g, '\\u003c')

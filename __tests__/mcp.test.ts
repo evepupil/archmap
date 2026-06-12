@@ -2,9 +2,9 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { initProject } from '../src/init.js'
+import { initProject } from '../src/setup/init.js'
 import { McpEngine } from '../src/mcp/engine.js'
-import { applyDraft, loadStore } from '../src/snapshot.js'
+import { applyDraft, loadStore } from '../src/store/snapshot.js'
 
 let tmp: string
 let engine: McpEngine

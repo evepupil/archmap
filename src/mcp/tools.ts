@@ -1,8 +1,8 @@
 import path from 'node:path'
-import { buildContextReport } from '../context.js'
-import { diffRange } from '../diff.js'
-import { changedFilesInRange, isGitRepo, listProjectFiles } from '../git.js'
-import { dirtyReport, statusReport } from '../reports.js'
+import { buildContextReport } from '../analysis/context.js'
+import { diffRange } from '../analysis/diff.js'
+import { changedFilesInRange, isGitRepo, listProjectFiles } from '../store/git.js'
+import { dirtyReport, statusReport } from '../analysis/reports.js'
 import {
   applyDraft,
   changedSinceLastSnapshot,
@@ -10,10 +10,10 @@ import {
   lastSnapshot,
   loadStore,
   type Store,
-} from '../snapshot.js'
-import type { SnapshotDraft } from '../types.js'
-import { ArchmapError, toPosix } from '../util.js'
-import { formatViolations } from '../validate.js'
+} from '../store/snapshot.js'
+import type { SnapshotDraft } from '../core/types.js'
+import { ArchmapError, toPosix } from '../core/util.js'
+import { formatViolations } from '../core/validate.js'
 
 const MAX_INPUT_LENGTH = 10_000
 const MAX_PATH_LENGTH = 4_096

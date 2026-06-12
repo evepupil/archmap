@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildContextReport } from '../src/context.js'
-import { emptyModel } from '../src/model.js'
-import { applyPatch } from '../src/patch.js'
-import type { Model, Snapshot } from '../src/types.js'
+import { buildContextReport } from '../src/analysis/context.js'
+import { emptyModel } from '../src/core/model.js'
+import { applyPatch } from '../src/core/patch.js'
+import type { Model, Snapshot } from '../src/core/types.js'
 
 function model(): Model {
   return applyPatch(

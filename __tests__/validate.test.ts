@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CONFIG } from '../src/config.js'
-import { emptyModel } from '../src/model.js'
-import { applyPatch } from '../src/patch.js'
-import type { Model, SnapshotDraft } from '../src/types.js'
-import { validateDraft } from '../src/validate.js'
+import { DEFAULT_CONFIG } from '../src/core/config.js'
+import { emptyModel } from '../src/core/model.js'
+import { applyPatch } from '../src/core/patch.js'
+import type { Model, SnapshotDraft } from '../src/core/types.js'
+import { validateDraft } from '../src/core/validate.js'
 
 const cfg = structuredClone(DEFAULT_CONFIG)
 

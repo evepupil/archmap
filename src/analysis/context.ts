@@ -1,7 +1,7 @@
 import picomatch from 'picomatch'
-import { walkModules } from './model.js'
-import type { Feature, Model, ModuleNode, Snapshot } from './types.js'
-import { toPosix } from './util.js'
+import { walkModules } from '../core/model.js'
+import type { Feature, Model, ModuleNode, Snapshot } from '../core/types.js'
+import { toPosix } from '../core/util.js'
 
 const HIT_THRESHOLD = 20
 const MAX_MODULES = 4

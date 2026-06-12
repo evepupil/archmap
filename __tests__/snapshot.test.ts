@@ -3,9 +3,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
-import { initProject } from '../src/init.js'
-import { applyDraft, findRoot, loadStore } from '../src/snapshot.js'
-import type { Snapshot, SnapshotDraft } from '../src/types.js'
+import { initProject } from '../src/setup/init.js'
+import { applyDraft, findRoot, loadStore } from '../src/store/snapshot.js'
+import type { Snapshot, SnapshotDraft } from '../src/core/types.js'
 
 let tmp: string
 

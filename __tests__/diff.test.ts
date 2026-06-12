@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { diffRange } from '../src/diff.js'
-import type { Snapshot } from '../src/types.js'
+import { diffRange } from '../src/analysis/diff.js'
+import type { Snapshot } from '../src/core/types.js'
 
 function snap(n: number, patch: Snapshot['patch']): Snapshot {
   return { snapshot: n, base: n - 1, date: '2026-06-01', commits: [], kind: 'feature', title: `s${n}`, story: 'x', patch, dirty_checked: [], no_change: [] }

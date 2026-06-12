@@ -1,5 +1,49 @@
-import type { Snapshot } from './types.js'
-import { classifyChanges } from './view.js'
+import type { PatchOp, Snapshot } from '../core/types.js'
+
+export interface SnapshotChanges {
+  added: string[]
+  modified: string[]
+  deprecated: string[]
+}
+
+/** 从补丁操作归类单个快照的变化:新增 > 废弃 > 修改,互斥 */
+export function classifyChanges(patch: PatchOp[]): SnapshotChanges {
+  const added = new Set<string>()
+  const deprecated = new Set<string>()
+  const modified = new Set<string>()
+  for (const op of patch) {
+    switch (op.op) {
+      case 'add_module':
+        added.add(op.module.id)
+        break
+      case 'add_feature':
+        added.add(op.feature.id)
+        break
+      case 'deprecate_module':
+      case 'deprecate_feature':
+        deprecated.add(op.id)
+        break
+      case 'update_module':
+      case 'update_feature':
+      case 'move_module':
+        modified.add(op.id)
+        break
+      case 'update_anchors':
+        modified.add(op.target)
+        break
+      case 'add_relation':
+      case 'remove_relation':
+        modified.add(op.from)
+        break
+    }
+  }
+  for (const id of added) {
+    modified.delete(id)
+    deprecated.delete(id)
+  }
+  for (const id of deprecated) modified.delete(id)
+  return { added: [...added].sort(), modified: [...modified].sort(), deprecated: [...deprecated].sort() }
+}
 
 export interface RangeDiff {
   /** 区间内新增且仍存活 */

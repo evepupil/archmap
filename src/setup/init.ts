@@ -69,7 +69,7 @@ export function initProject(root: string, opts: { home?: string } = {}): InitRes
   // 把工作流 skill 装进目标项目;装了 Codex 的同时投放到它的项目级目录
   const home = opts.home ?? os.homedir()
   const codex = fs.existsSync(path.join(home, '.codex'))
-  const templateDir = fileURLToPath(new URL('../templates', import.meta.url))
+  const templateDir = fileURLToPath(new URL('../../templates', import.meta.url))
   for (const s of SKILLS) {
     const src = path.join(templateDir, s.template)
     if (!fs.existsSync(src)) continue
