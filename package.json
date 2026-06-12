@@ -1,0 +1,36 @@
+{
+  "name": "archmap",
+  "version": "0.1.0",
+  "description": "架构与功能层面的、AI 自动维护的、带时间线的项目地图",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "archmap": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run test"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "commander": "^14.0.2",
+    "picomatch": "^4.0.3",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.30",
+    "@types/picomatch": "^4.0.2",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.9"
+  }
+}
