@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import { spawn } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { Command } from 'commander'
 import picomatch from 'picomatch'
@@ -22,6 +24,7 @@ import {
 import type { SnapshotDraft } from './types.js'
 import { ArchmapError, toPosix } from './util.js'
 import { formatViolations } from './validate.js'
+import { buildViewData, renderViewerHtml } from './view.js'
 
 const program = new Command()
 
@@ -201,6 +204,32 @@ program
     } else if (files) {
       console.log('锚点全部有效')
     }
+  })
+
+function openInBrowser(file: string): void {
+  const cmd =
+    process.platform === 'win32'
+      ? ['cmd', ['/c', 'start', '', file]]
+      : process.platform === 'darwin'
+        ? ['open', [file]]
+        : ['xdg-open', [file]]
+  spawn(cmd[0] as string, cmd[1] as string[], { detached: true, stdio: 'ignore' }).unref()
+}
+
+program
+  .command('view')
+  .option('--out <file>', '输出 HTML 路径(默认写到系统临时目录)')
+  .option('--no-open', '只生成,不打开浏览器')
+  .description('生成并打开架构舆图(自包含单文件 HTML)')
+  .action((opts: { out?: string; open: boolean }) => {
+    const store = requireStore()
+    const html = renderViewerHtml(buildViewData(store.root, store.snapshots))
+    const out = opts.out
+      ? path.resolve(opts.out)
+      : path.join(os.tmpdir(), `archmap-view-${path.basename(store.root)}.html`)
+    fs.writeFileSync(out, html, 'utf8')
+    console.log(`已生成: ${out}`)
+    if (opts.open) openInBrowser(out)
   })
 
 program
